@@ -1,0 +1,4532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Thunder Unicorn 13</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    user-select:none;
+    -webkit-user-select:none;
+}
+
+html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#071525;
+    touch-action:none;
+    font-family:Arial,"Microsoft YaHei",sans-serif;
+}
+
+canvas{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    touch-action:none;
+}
+
+#ui{
+    position:fixed;
+    inset:0;
+    z-index:20;
+    pointer-events:none;
+    color:white;
+    text-shadow:0 2px 5px #000;
+}
+
+#top{
+    position:absolute;
+    top:12px;
+    left:50%;
+    transform:translateX(-50%);
+    width:min(600px,82vw);
+    text-align:center;
+}
+
+#level{
+    font-size:14px;
+    margin-bottom:6px;
+}
+
+#energyBox{
+    height:12px;
+    border:1px solid #ffffff55;
+    border-radius:10px;
+    overflow:hidden;
+    background:#0008;
+}
+
+#energy{
+    width:100%;
+    height:100%;
+    background:linear-gradient(90deg,#36d9ff,#e9ffff);
+    transition:width .05s linear;
+}
+
+#energyText,
+#cooldown{
+    font-size:11px;
+    margin-top:4px;
+}
+
+#score{
+    position:absolute;
+    right:15px;
+    top:15px;
+    font-size:13px;
+}
+
+#players{
+    position:absolute;
+    left:15px;
+    top:15px;
+    font-size:12px;
+}
+
+#hint{
+    position:absolute;
+    bottom:14px;
+    left:50%;
+    transform:translateX(-50%);
+    width:90%;
+    text-align:center;
+    font-size:12px;
+    opacity:.75;
+}
+
+.button{
+    pointer-events:auto;
+    padding:11px 28px;
+    margin:5px;
+    border-radius:8px;
+    border:1px solid #67eaff;
+    background:#062638ee;
+    color:white;
+    cursor:pointer;
+}
+
+#startScreen,
+#finish{
+    position:fixed;
+    inset:0;
+    z-index:100;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    text-align:center;
+    color:white;
+}
+
+#startScreen{
+    background:radial-gradient(circle,#174d68,#061321 72%);
+}
+
+#startScreen h1{
+    margin:0 0 10px;
+    font-size:clamp(32px,8vw,56px);
+    text-shadow:0 0 30px #67eaff;
+}
+
+#startScreen p{
+    opacity:.75;
+    font-size:13px;
+    margin-bottom:25px;
+}
+
+#finish{
+    display:none;
+    background:#020d16f5;
+}
+
+#finish.show{
+    display:flex;
+}
+
+#finish h1{
+    font-size:clamp(28px,7vw,48px);
+    text-shadow:0 0 30px #7fefff;
+}
+
+#debugButton{
+    position:fixed;
+    right:12px;
+    bottom:12px;
+    z-index:50;
+    pointer-events:auto;
+    padding:7px 12px;
+    border:1px solid #ffffff55;
+    border-radius:6px;
+    background:#0009;
+    color:white;
+    font-size:11px;
+}
+
+#debugPanel{
+    display:none;
+    position:fixed;
+    right:12px;
+    bottom:50px;
+    width:255px;
+    max-height:75vh;
+    overflow:auto;
+    padding:12px;
+    z-index:50;
+    color:white;
+    font-size:12px;
+    background:#03101aec;
+    border:1px solid #ffffff44;
+    border-radius:8px;
+}
+
+#debugPanel.show{
+    display:block;
+}
+
+.debugRow{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin:7px 0;
+}
+
+.debugRow button{
+    min-width:42px;
+    border:0;
+    border-radius:4px;
+    padding:3px 8px;
+}
+
+.on{
+    background:#43e5ff;
+    color:#001018;
+}
+
+.off{
+    background:#444;
+    color:#aaa;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="game"></canvas>
+
+<div id="ui">
+
+    <div id="top">
+
+        <div id="level">
+            等待开始
+        </div>
+
+        <div id="energyBox">
+            <div id="energy"></div>
+        </div>
+
+        <div id="energyText">
+            能量系统 ON
+        </div>
+
+        <div id="cooldown">
+            ⚡ READY
+        </div>
+
+    </div>
+
+    <div id="players">
+        玩家1 · 0/13
+    </div>
+
+    <div id="score">
+        得分：0
+    </div>
+
+    <div id="hint">
+        移动鼠标/手指瞄准 · 长按蓄力 · 松开发射
+    </div>
+
+</div>
+
+
+<div id="startScreen">
+
+    <h1>
+        ⚡ Thunder Unicorn
+    </h1>
+
+    <p>
+        穿过层层云海，按照顺序解救13只独角兽
+    </p>
+
+    <button id="startButton" class="button">
+        开始游戏
+    </button>
+
+</div>
+
+
+<button id="debugButton">
+    DEBUG
+</button>
+
+
+<div id="debugPanel">
+
+    <b>DEBUG</b>
+
+    <div class="debugRow">
+        <span>能量系统</span>
+        <button id="energyDebug" class="on">
+            ON
+        </button>
+    </div>
+
+    <div class="debugRow">
+        <span>射击固定耗能</span>
+        <button id="shotEnergyDebug" class="on">
+            ON
+        </button>
+    </div>
+
+    <div class="debugRow">
+        <span>黑云机制</span>
+        <button id="blackCloudDebug" class="on">
+            ON
+        </button>
+    </div>
+
+    <div class="debugRow">
+        <span>目标高亮</span>
+        <button id="targetDebug" class="on">
+            ON
+        </button>
+    </div>
+
+    <div class="debugRow">
+        <span>高亮提示</span>
+        <button id="hintDebug" class="on">
+            ON
+        </button>
+    </div>
+
+    <div class="debugRow">
+        <span>云等级显示</span>
+        <button id="cloudLevelDebug" class="off">
+            OFF
+        </button>
+    </div>
+
+    <div class="debugRow">
+        <span>UI等级显示</span>
+        <button id="uiDebug" class="off">
+            OFF
+        </button>
+    </div>
+
+    <div class="debugRow">
+        <span>碰撞框</span>
+        <button id="collisionDebug" class="off">
+            OFF
+        </button>
+    </div>
+
+    <div class="debugRow">
+        <span>抛物线功能</span>
+        <button id="trajectoryDebug" class="off">
+            OFF
+        </button>
+    </div>
+
+    <div class="debugRow">
+        <span>抛物线显示</span>
+        <button id="trajectoryDisplayDebug" class="off">
+            OFF
+        </button>
+    </div>
+
+    <div class="debugRow">
+        <span>蓄力抖动</span>
+        <button id="shakeDebug" class="on">
+            ON
+        </button>
+    </div>
+
+</div>
+
+
+<div id="finish">
+
+    <h1>
+        🌈 13只独角兽全部获救
+    </h1>
+
+    <p id="finalScore">
+        最终得分：0
+    </p>
+
+    <button id="restart" class="button">
+        再来一次
+    </button>
+
+</div>
+
+
+<script>
+
+"use strict";
+
+
+/* =========================================================
+   基础
+========================================================= */
+
+const canvas=
+    document.getElementById("game");
+
+const ctx=
+    canvas.getContext("2d");
+
+let W=innerWidth;
+let H=innerHeight;
+
+let DPR=
+    Math.min(
+        2,
+        devicePixelRatio||1
+    );
+
+
+const TOTAL=13;
+
+
+/* =========================================================
+   参数
+========================================================= */
+
+const MAX_ENERGY=100;
+
+const ENERGY_REGEN=9;
+
+const ENERGY_DRAIN=14;
+
+const SHOT_ENERGY_COST=18;
+
+const MAX_CHARGE=3000;
+
+const COOLDOWN=1100;
+
+const ARROW_SPEED=850;
+
+const ARROW_LIFE=5000;
+
+
+/* =========================================================
+   游戏
+========================================================= */
+
+let started=false;
+
+let finished=false;
+
+let score=0;
+
+let rescued=0;
+
+
+/* =========================================================
+   Debug
+========================================================= */
+
+const debug={
+
+    energy:true,
+
+    shotEnergy:true,
+
+    blackCloud:true,
+
+    target:true,
+
+    hint:true,
+
+    cloudLevel:false,
+
+    ui:false,
+
+    collision:false,
+
+    trajectory:false,
+
+    trajectoryDisplay:false,
+
+    shake:true
+};
+
+
+/* =========================================================
+   瞄准
+========================================================= */
+
+const aim={
+
+    x:W*.72,
+
+    y:H*.45
+};
+
+
+/* =========================================================
+   武器
+========================================================= */
+
+const weapon={
+
+    energy:MAX_ENERGY,
+
+    cooldown:0,
+
+    charging:false,
+
+    charge:0,
+
+    shake:0
+};
+
+
+/* =========================================================
+   对象
+========================================================= */
+
+const clouds=[];
+
+const unicorns=[];
+
+const backgroundClouds=[];
+
+const arrows=[];
+
+const particles=[];
+
+const impacts=[];
+
+const rainbows=[];
+
+const rain=[];
+
+
+/* =========================================================
+   天气
+========================================================= */
+
+const weather={
+
+    raining:false,
+
+    timer:0,
+
+    duration:1800,
+
+    rainbow:null
+};
+
+
+/* =========================================================
+   提示
+========================================================= */
+
+let assistTimer=0;
+
+let assistFlash=0;
+
+
+/* =========================================================
+   工具
+========================================================= */
+
+function clamp(v,a,b){
+
+    return Math.max(
+        a,
+        Math.min(b,v)
+    );
+}
+
+
+function rnd(a,b){
+
+    return a+
+        Math.random()*
+        (b-a);
+}
+
+
+function dist(
+    ax,
+    ay,
+    bx,
+    by
+){
+
+    return Math.hypot(
+        ax-bx,
+        ay-by
+    );
+}
+
+
+/* =========================================================
+   Resize
+========================================================= */
+
+function resize(){
+
+    W=innerWidth;
+
+    H=innerHeight;
+
+    DPR=
+        Math.min(
+            2,
+            devicePixelRatio||1
+        );
+
+    canvas.width=
+        W*DPR;
+
+    canvas.height=
+        H*DPR;
+
+    canvas.style.width=
+        W+"px";
+
+    canvas.style.height=
+        H+"px";
+
+    ctx.setTransform(
+        DPR,
+        0,
+        0,
+        DPR,
+        0,
+        0
+    );
+
+    for(const c of clouds){
+
+        clampCloud(c);
+    }
+
+    for(const u of unicorns){
+
+        u.x=
+            clamp(
+                u.x,
+                u.radius+10,
+                W-u.radius-10
+            );
+
+        u.y=
+            clamp(
+                u.y,
+                H*.13,
+                H*.62
+            );
+    }
+}
+
+
+addEventListener(
+    "resize",
+    resize
+);
+
+
+/* =========================================================
+   云生成
+========================================================= */
+
+function createClouds(){
+
+    clouds.length=0;
+
+    /*
+     * 每个等级独立生成1~3朵。
+     *
+     * 13等级：
+     *
+     * LV1  1~3
+     * LV2  1~3
+     * ...
+     * LV13 1~3
+     */
+
+    for(
+        let level=1;
+        level<=TOTAL;
+        level++
+    ){
+
+        const count=
+            Math.floor(
+                Math.random()*3
+            )+1;
+
+        for(
+            let n=0;
+            n<count;
+            n++
+        ){
+
+            const radius=
+                rnd(48,92);
+
+            let x=0;
+
+            let y=0;
+
+            let valid=false;
+
+            for(
+                let attempt=0;
+                attempt<80;
+                attempt++
+            ){
+
+                x=
+                    rnd(
+                        radius+15,
+                        Math.max(
+                            radius+16,
+                            W-radius-15
+                        )
+                    );
+
+                y=
+                    rnd(
+                        H*.12,
+                        Math.max(
+                            H*.13,
+                            H*.68-radius
+                        )
+                    );
+
+                valid=true;
+
+                /*
+                 * 只避免完全重叠。
+                 *
+                 * 不要求所有云都严格分开，
+                 * 允许自然堆叠。
+                 */
+                for(
+                    const old of clouds
+                ){
+
+                    const d=
+                        dist(
+                            x,
+                            y,
+                            old.x,
+                            old.y
+                        );
+
+                    if(
+                        d<
+                        (
+                            radius+
+                            old.radius+
+                            12
+                        )
+                    ){
+
+                        valid=false;
+
+                        break;
+                    }
+                }
+
+                if(valid){
+                    break;
+                }
+            }
+
+            /*
+             * 这里绝对不能：
+             *
+             * hp = TOTAL
+             *
+             * 或
+             *
+             * ui = TOTAL
+             *
+             * 必须使用当前 level。
+             */
+            clouds.push({
+
+                id:clouds.length,
+
+                level:level,
+
+                maxHP:level,
+
+                hp:level,
+
+                ui:level,
+
+                x:x,
+
+                y:y,
+
+                radius:radius,
+
+                opacity:1,
+
+                black:false,
+
+                flash:0,
+
+                lightningFlash:0,
+
+                lightningTimer:
+                    performance.now()+
+                    rnd(
+                        500,
+                        2500
+                    ),
+
+                dx:rnd(
+                    -.35,
+                    .35
+                ),
+
+                dy:rnd(
+                    -.12,
+                    .12
+                )
+            });
+        }
+    }
+
+    /*
+     * 随机位置顺序。
+     *
+     * 不改变等级。
+     */
+    for(
+        let i=clouds.length-1;
+        i>0;
+        i--
+    ){
+
+        const j=
+            Math.floor(
+                Math.random()*
+                (i+1)
+            );
+
+        const temp=
+            clouds[i];
+
+        clouds[i]=
+            clouds[j];
+
+        clouds[j]=
+            temp;
+    }
+}
+
+
+/* =========================================================
+   云边界
+========================================================= */
+
+function clampCloud(c){
+
+    const minX=
+        c.radius+5;
+
+    const maxX=
+        Math.max(
+            minX,
+            W-c.radius-5
+        );
+
+    const minY=
+        c.radius+5;
+
+    const maxY=
+        Math.max(
+            minY,
+            H*.70-c.radius
+        );
+
+    c.x=
+        clamp(
+            c.x,
+            minX,
+            maxX
+        );
+
+    c.y=
+        clamp(
+            c.y,
+            minY,
+            maxY
+        );
+}
+
+
+/* =========================================================
+   独角兽
+========================================================= */
+
+function createUnicorns(){
+    unicorns.length=0;
+
+    for(let i=0;i<TOTAL;i++){
+
+        const d=i/(TOTAL-1);
+
+        unicorns.push({
+            id:i,
+            ui:TOTAL-i,
+
+            x:rnd(
+                80,
+                Math.max(81,W-80)
+            ),
+
+            y:rnd(
+                H*.22,
+                H*.58
+            ),
+
+            scale:1-d*.68,
+            opacity:1-d*.58,
+            radius:36-d*23,
+
+            dx:Math.random()<.5?-1:1,
+            dy:Math.random()<.5?-1:1,
+
+            speed:.35+d*.8,
+
+            rescued:false
+        });
+    }
+}
+
+
+/* =========================================================
+   背景云
+========================================================= */
+
+function createBackgroundClouds(){
+
+    backgroundClouds.length=0;
+
+    const count=
+        Math.max(
+            30,
+            Math.floor(W/25)
+        );
+
+    for(
+        let i=0;
+        i<count;
+        i++
+    ){
+
+        backgroundClouds.push({
+
+            x:rnd(
+                -100,
+                W+100
+            ),
+
+            y:rnd(
+                20,
+                H*.7
+            ),
+
+            size:rnd(
+                25,
+                100
+            ),
+
+            speed:rnd(
+                .01,
+                .04
+            ),
+
+            opacity:rnd(
+                .05,
+                .18
+            )
+        });
+    }
+}
+
+
+/* =========================================================
+   当前独角兽
+========================================================= */
+
+function getCurrentTarget(){
+
+    if(
+        rescued>=TOTAL
+    ){
+
+        return null;
+    }
+
+    return unicorns[rescued];
+}
+
+
+/* =========================================================
+   当前箭等级
+========================================================= */
+
+function getArrowUI(){
+
+    const target=
+        getCurrentTarget();
+
+    return target
+        ?target.ui
+        :Infinity;
+}
+
+
+/* =========================================================
+   云碰撞等级
+========================================================= */
+
+function canCollideCloud(c){
+
+    /*
+     * 黑云永远阻挡。
+     */
+    if(
+        debug.blackCloud&&
+        c.black
+    ){
+
+        return true;
+    }
+
+    /*
+     * 普通云：
+     *
+     * HP >= 箭UI
+     *
+     * 才产生碰撞。
+     */
+    return c.hp>=getArrowUI();
+}
+
+
+/* =========================================================
+   瞄准
+========================================================= */
+
+function getAimPoint(){
+
+    if(
+        !weapon.charging||
+        !debug.shake
+    ){
+
+        return {
+
+            x:aim.x,
+
+            y:aim.y
+        };
+    }
+
+    return {
+
+        x:
+            aim.x+
+            Math.sin(
+                performance.now()/38
+            )*
+            weapon.shake,
+
+        y:
+            aim.y+
+            Math.cos(
+                performance.now()/44
+            )*
+            weapon.shake
+    };
+}
+
+
+/* =========================================================
+   创建箭
+========================================================= */
+
+function createArrow(){
+
+    const startX=
+        W*.09;
+
+    const startY=
+        H*.82;
+
+    const p=
+        getAimPoint();
+
+    const dx=
+        p.x-startX;
+
+    const dy=
+        p.y-startY;
+
+    const angle=
+        Math.atan2(
+            dy,
+            dx
+        );
+
+    /*
+     * 蓄力比例。
+     */
+    const chargeRatio=
+        clamp(
+            weapon.charge/
+            MAX_CHARGE,
+            0,
+            1
+        );
+
+    /*
+     * 固定初速度。
+     *
+     * 蓄力不会增加射程。
+     */
+    const speed=
+        ARROW_SPEED;
+
+    /*
+     * 抛物线系统。
+     *
+     * OFF：
+     * gravity=0
+     *
+     * ON：
+     * 存在真实重力。
+     *
+     * 蓄力越久，
+     * 重力越小。
+     */
+    const gravity=
+        debug.trajectory
+            ?
+            520-
+            chargeRatio*360
+            :
+            0;
+
+    arrows.push({
+
+        x:startX,
+
+        y:startY,
+
+        vx:
+            Math.cos(angle)*
+            speed,
+
+        vy:
+            Math.sin(angle)*
+            speed,
+
+        gravity:gravity,
+
+        ui:getArrowUI(),
+
+        life:0,
+
+        trail:[]
+    });
+}
+
+
+/* =========================================================
+   发射
+========================================================= */
+
+function fire(){
+
+    if(
+        !started||
+        finished
+    ){
+
+        return false;
+    }
+
+    if(
+        weapon.cooldown>0
+    ){
+
+        return false;
+    }
+
+    /*
+     * 固定射击耗能。
+     */
+    if(
+        debug.energy&&
+        debug.shotEnergy
+    ){
+
+        if(
+            weapon.energy<
+            SHOT_ENERGY_COST
+        ){
+
+            return false;
+        }
+
+        weapon.energy-=
+            SHOT_ENERGY_COST;
+
+        weapon.energy=
+            clamp(
+                weapon.energy,
+                0,
+                MAX_ENERGY
+            );
+    }
+
+    createArrow();
+
+    weapon.cooldown=
+        COOLDOWN;
+
+    playThunder();
+
+    return true;
+}
+
+
+/* =========================================================
+   开始蓄力
+========================================================= */
+
+function beginCharge(){
+
+    if(
+        !started||
+        finished
+    ){
+
+        return;
+    }
+
+    if(
+        weapon.cooldown>0
+    ){
+
+        return;
+    }
+
+    /*
+     * 只有在能量系统+固定耗能
+     * 都开启时才需要最低能量检查。
+     */
+    if(
+        debug.energy&&
+        debug.shotEnergy&&
+        weapon.energy<
+        SHOT_ENERGY_COST
+    ){
+
+        return;
+    }
+
+    weapon.charging=true;
+
+    weapon.charge=0;
+}
+
+
+/* =========================================================
+   结束蓄力
+========================================================= */
+
+function endCharge(){
+
+    if(
+        !weapon.charging
+    ){
+
+        return;
+    }
+
+    weapon.charging=false;
+
+    fire();
+
+    weapon.charge=0;
+
+    weapon.shake=0;
+}
+
+
+/* =========================================================
+   武器更新
+========================================================= */
+
+function updateWeapon(dt){
+
+    weapon.cooldown=
+        Math.max(
+            0,
+            weapon.cooldown-
+            dt*1000
+        );
+
+    /*
+     * 不蓄力：
+     *
+     * 能量恢复。
+     */
+    if(
+        !weapon.charging
+    ){
+
+        if(debug.energy){
+
+            weapon.energy+=
+                ENERGY_REGEN*
+                dt;
+
+            weapon.energy=
+                clamp(
+                    weapon.energy,
+                    0,
+                    MAX_ENERGY
+                );
+        }
+
+        weapon.shake=0;
+
+        return;
+    }
+
+    /*
+     * 蓄力：
+     *
+     * 暂停恢复。
+     *
+     * 持续消耗。
+     */
+    if(debug.energy){
+
+        weapon.energy-=
+            ENERGY_DRAIN*
+            dt;
+
+        weapon.energy=
+            clamp(
+                weapon.energy,
+                0,
+                MAX_ENERGY
+            );
+    }
+
+    weapon.charge+=
+        dt*1000;
+
+    /*
+     * 蓄力抖动。
+     */
+    if(debug.shake){
+
+        const ratio=
+            clamp(
+                (
+                    weapon.charge-
+                    1000
+                )/
+                2000,
+                0,
+                1
+            );
+
+        weapon.shake=
+            ratio*14;
+    }
+
+    /*
+     * 只有能量系统开启时，
+     * 能量耗尽才强制发射。
+     *
+     * 关闭能量系统后绝对不会
+     * 因为“能量=0”而自动发射。
+     */
+    if(
+        debug.energy&&
+        weapon.energy<=0
+    ){
+
+        weapon.energy=0;
+
+        weapon.charging=false;
+
+        fire();
+
+        weapon.charge=0;
+
+        weapon.shake=0;
+
+        return;
+    }
+
+    /*
+     * 最大蓄力时间仍然有效。
+     */
+    if(
+        weapon.charge>=
+        MAX_CHARGE
+    ){
+
+        weapon.charging=false;
+
+        fire();
+
+        weapon.charge=0;
+
+        weapon.shake=0;
+    }
+}
+
+
+/* =========================================================
+   线段圆碰撞
+========================================================= */
+
+function segmentCircle(
+    x1,
+    y1,
+    x2,
+    y2,
+    cx,
+    cy,
+    radius
+){
+
+    const dx=
+        x2-x1;
+
+    const dy=
+        y2-y1;
+
+    const len2=
+        dx*dx+
+        dy*dy;
+
+    if(
+        len2===0
+    ){
+
+        return (
+            dist(
+                x1,
+                y1,
+                cx,
+                cy
+            )<=radius
+        );
+    }
+
+    let t=
+        (
+            (cx-x1)*dx+
+            (cy-y1)*dy
+        )/
+        len2;
+
+    t=
+        clamp(
+            t,
+            0,
+            1
+        );
+
+    const px=
+        x1+
+        dx*t;
+
+    const py=
+        y1+
+        dy*t;
+
+    return (
+        dist(
+            px,
+            py,
+            cx,
+            cy
+        )<=radius
+    );
+}
+
+
+/* =========================================================
+   箭更新
+========================================================= */
+
+function updateArrows(dt){
+
+    for(
+        let i=arrows.length-1;
+        i>=0;
+        i--
+    ){
+
+        const a=
+            arrows[i];
+
+        const oldX=a.x;
+
+        const oldY=a.y;
+
+        a.life+=
+            dt*1000;
+
+        /*
+         * 真实重力。
+         */
+        a.vy+=
+            a.gravity*
+            dt;
+
+        a.x+=
+            a.vx*
+            dt;
+
+        a.y+=
+            a.vy*
+            dt;
+
+        /*
+         * 短闪电轨迹。
+         */
+        a.trail.push({
+
+            x:a.x,
+
+            y:a.y
+        });
+
+        if(
+            a.trail.length>12
+        ){
+
+            a.trail.shift();
+        }
+
+        /*
+         * 真实碰撞。
+         */
+        if(
+            checkCollision(
+                a,
+                oldX,
+                oldY
+            )
+        ){
+
+            arrows.splice(
+                i,
+                1
+            );
+
+            continue;
+        }
+
+        /*
+         * 生命周期。
+         */
+        if(
+            a.life>
+            ARROW_LIFE||
+            a.x<-100||
+            a.x>W+100||
+            a.y<-100||
+            a.y>H+100
+        ){
+
+            arrows.splice(
+                i,
+                1
+            );
+        }
+    }
+}
+
+
+/* =========================================================
+   碰撞
+========================================================= */
+
+function checkCollision(
+    arrow,
+    oldX,
+    oldY
+){
+
+    const target=
+        getCurrentTarget();
+
+    if(!target){
+
+        return false;
+    }
+
+    let nearest=null;
+
+    let nearestDistance=
+        Infinity;
+
+    /*
+     * 云优先。
+     */
+    for(
+        const c of clouds
+    ){
+
+        if(
+            c.hp<=0&&
+            !c.black
+        ){
+
+            continue;
+        }
+
+        if(
+            !canCollideCloud(c)
+        ){
+
+            continue;
+        }
+
+        if(
+            segmentCircle(
+                oldX,
+                oldY,
+                arrow.x,
+                arrow.y,
+                c.x,
+                c.y,
+                c.radius
+            )
+        ){
+
+            const d=
+                dist(
+                    oldX,
+                    oldY,
+                    c.x,
+                    c.y
+                );
+
+            if(
+                d<
+                nearestDistance
+            ){
+
+                nearestDistance=d;
+
+                nearest=c;
+            }
+        }
+    }
+
+    if(nearest){
+
+        hitCloud(nearest);
+
+        return true;
+    }
+
+    /*
+     * 只有当前独角兽能被救。
+     */
+    if(
+        segmentCircle(
+            oldX,
+            oldY,
+            arrow.x,
+            arrow.y,
+            target.x,
+            target.y,
+            target.radius
+        )
+    ){
+
+        rescue(target);
+
+        return true;
+    }
+
+    return false;
+}
+
+
+/* =========================================================
+   云：打淡
+========================================================= */
+
+function fadeCloud(c){
+
+    if(c.black){
+
+        return;
+    }
+
+    c.hp=
+        Math.max(
+            0,
+            c.hp-1
+        );
+
+    /*
+     * UI等级跟随当前HP。
+     *
+     * 但level永远不变。
+     */
+    c.ui=c.hp;
+
+    c.opacity=
+        clamp(
+            c.hp/
+            c.maxHP,
+            .08,
+            1
+        );
+
+    c.flash=1;
+}
+
+
+/* =========================================================
+   云：凝实
+========================================================= */
+
+function condenseCloud(c){
+
+    /*
+     * level不改变。
+     *
+     * maxHP也不改变。
+     */
+    c.hp=
+        Math.min(
+            c.maxHP+1,
+            c.hp+1
+        );
+
+    c.ui=c.hp;
+
+    c.opacity=1;
+
+    c.black=true;
+
+    c.lightningTimer=
+        performance.now()+
+        rnd(
+            300,
+            1000
+        );
+
+    c.lightningFlash=1;
+
+    lightningImpact(
+        c.x,
+        c.y
+    );
+}
+
+
+/* =========================================================
+   云命中
+========================================================= */
+
+function hitCloud(c){
+
+    /*
+     * 黑云机制关闭：
+     *
+     * 一律普通打淡。
+     */
+    if(
+        !debug.blackCloud
+    ){
+
+        fadeCloud(c);
+
+        score+=1;
+
+        lightningImpact(
+            c.x,
+            c.y
+        );
+
+        return;
+    }
+
+    /*
+     * 黑云：
+     *
+     * 无法打淡，
+     * 但仍有闪电反馈。
+     */
+    if(c.black){
+
+        c.lightningFlash=1;
+
+        c.flash=1;
+
+        score+=1;
+
+        lightningImpact(
+            c.x,
+            c.y
+        );
+
+        return;
+    }
+
+    /*
+     * 普通白云：
+     *
+     * 75%打淡
+     * 25%凝实
+     */
+    if(
+        Math.random()<.25
+    ){
+
+        condenseCloud(c);
+
+    }else{
+
+        fadeCloud(c);
+    }
+
+    /*
+     * 云命中固定+1。
+     */
+    score+=1;
+
+    lightningImpact(
+        c.x,
+        c.y
+    );
+}
+
+
+/* =========================================================
+   黑云恢复
+========================================================= */
+
+function restoreBlackClouds(){
+
+    for(
+        const c of clouds
+    ){
+
+        if(!c.black){
+
+            continue;
+        }
+
+        c.black=false;
+
+        /*
+         * 不改变原始等级。
+         */
+        c.hp=
+            Math.min(
+                c.hp,
+                c.maxHP
+            );
+
+        c.ui=c.hp;
+
+        c.opacity=
+            clamp(
+                c.hp/
+                c.maxHP,
+                .08,
+                1
+            );
+
+        c.lightningFlash=0;
+
+        c.flash=1;
+    }
+}
+
+
+/* =========================================================
+   解救独角兽
+========================================================= */
+
+function rescue(u){
+
+    if(u.rescued){
+
+        return;
+    }
+
+    /*
+     * 严格顺序。
+     */
+    if(
+        u.id!==rescued
+    ){
+
+        return;
+    }
+
+    u.rescued=true;
+
+    /*
+     * 独角兽分数。
+     */
+    score+=
+        100+
+        u.id*25;
+
+    rescued++;
+
+    lightningImpact(
+        u.x,
+        u.y
+    );
+
+    /*
+     * 救出当前目标后，
+     * 黑云全部恢复。
+     */
+    if(
+        debug.blackCloud
+    ){
+
+        restoreBlackClouds();
+    }
+
+    /*
+     * 先下雨。
+     */
+    startRain(u);
+
+    /*
+     * 最后一只。
+     */
+    if(
+        rescued>=TOTAL
+    ){
+
+        setTimeout(
+            finishGame,
+            1900
+        );
+    }
+}
+
+
+/* =========================================================
+   下雨
+========================================================= */
+
+function startRain(u){
+
+    weather.raining=true;
+
+    weather.timer=0;
+
+    weather.rainbow={
+
+        x:u.x,
+
+        y:u.y,
+
+        ui:u.ui
+    };
+
+    rain.length=0;
+
+    for(
+        let i=0;
+        i<200;
+        i++
+    ){
+
+        rain.push({
+
+            x:rnd(
+                0,
+                W
+            ),
+
+            y:rnd(
+                -H,
+                H
+            ),
+
+            speed:rnd(
+                600,
+                1100
+            ),
+
+            length:rnd(
+                10,
+                22
+            ),
+
+            opacity:rnd(
+                .3,
+                .8
+            )
+        });
+    }
+}
+
+
+/* =========================================================
+   天气更新
+========================================================= */
+
+function updateWeather(dt){
+
+    if(
+        !weather.raining
+    ){
+
+        return;
+    }
+
+    weather.timer+=
+        dt*1000;
+
+    for(
+        const r of rain
+    ){
+
+        r.y+=
+            r.speed*
+            dt;
+
+        if(
+            r.y>
+            H+30
+        ){
+
+            r.y=
+                -rnd(
+                    20,
+                    200
+                );
+        }
+    }
+
+    if(
+        weather.timer>=
+        weather.duration
+    ){
+
+        weather.raining=false;
+
+        if(weather.rainbow){
+
+            rainbows.push({
+
+                x:
+                    weather.rainbow.x,
+
+                y:
+                    weather.rainbow.y,
+
+                ui:
+                    weather.rainbow.ui,
+
+                size:
+                    Math.max(
+                        280,
+                        H*.55
+                    ),
+
+                life:12000,
+
+                maxLife:12000
+            });
+        }
+
+        weather.rainbow=null;
+    }
+}
+
+
+/* =========================================================
+   彩虹更新
+========================================================= */
+
+function updateRainbows(dt){
+
+    for(
+        let i=rainbows.length-1;
+        i>=0;
+        i--
+    ){
+
+        const r=
+            rainbows[i];
+
+        r.life-=
+            dt*1000;
+
+        if(
+            r.life<=0
+        ){
+
+            rainbows.splice(
+                i,
+                1
+            );
+        }
+    }
+}
+
+
+/* =========================================================
+   云移动
+========================================================= */
+
+function updateClouds(dt){
+
+    for(
+        const c of clouds
+    ){
+
+        c.x+=
+            c.dx*
+            dt*
+            60;
+
+        c.y+=
+            c.dy*
+            dt*
+            60;
+
+        const oldDx=c.dx;
+
+        const oldDy=c.dy;
+
+        clampCloud(c);
+
+        if(
+            c.x<=c.radius+5||
+            c.x>=W-c.radius-5
+        ){
+
+            c.dx=-oldDx;
+        }
+
+        if(
+            c.y<=c.radius+5||
+            c.y>=H*.70-c.radius
+        ){
+
+            c.dy=-oldDy;
+        }
+
+        c.flash=
+            Math.max(
+                0,
+                c.flash-
+                dt*5
+            );
+
+        if(c.black){
+
+            c.lightningFlash=
+                Math.max(
+                    0,
+                    c.lightningFlash-
+                    dt*4
+                );
+
+            if(
+                performance.now()>
+                c.lightningTimer
+            ){
+
+                c.lightningFlash=1;
+
+                c.lightningTimer=
+                    performance.now()+
+                    rnd(
+                        500,
+                        1700
+                    );
+            }
+        }
+    }
+}
+
+
+/* =========================================================
+   独角兽更新
+========================================================= */
+
+function updateUnicorns(dt){
+
+    for(
+        const u of unicorns
+    ){
+
+        if(u.rescued){
+
+            continue;
+        }
+
+        u.x+=
+            u.dx*
+            u.speed*
+            dt*
+            60;
+
+        u.y+=
+            u.dy*
+            u.speed*
+            dt*
+            30;
+
+        const margin=
+            u.radius+15;
+
+        if(
+            u.x<margin
+        ){
+
+            u.x=margin;
+
+            u.dx=1;
+        }
+
+        if(
+            u.x>
+            W-margin
+        ){
+
+            u.x=
+                W-margin;
+
+            u.dx=-1;
+        }
+
+        if(
+            u.y<H*.13
+        ){
+
+            u.y=H*.13;
+
+            u.dy=1;
+        }
+
+        if(
+            u.y>H*.62
+        ){
+
+            u.y=H*.62;
+
+            u.dy=-1;
+        }
+    }
+}
+
+
+/* =========================================================
+   背景云更新
+========================================================= */
+
+function updateBackgroundClouds(dt){
+
+    for(
+        const c of backgroundClouds
+    ){
+
+        c.x+=
+            c.speed*
+            dt*
+            60;
+
+        if(
+            c.x>
+            W+150
+        ){
+
+            c.x=-150;
+        }
+    }
+}
+
+
+/* =========================================================
+   提示更新
+========================================================= */
+
+function updateAssist(dt){
+
+    if(
+        !debug.hint
+    ){
+
+        assistFlash=0;
+
+        assistTimer=0;
+
+        return;
+    }
+
+    assistTimer+=
+        dt*1000;
+
+    if(
+        assistTimer>
+        6500
+    ){
+
+        assistTimer=0;
+
+        assistFlash=2500;
+    }
+
+    if(
+        assistFlash>0
+    ){
+
+        assistFlash-=
+            dt*1000;
+    }
+}
+
+
+/* =========================================================
+   闪电效果
+========================================================= */
+
+function lightningImpact(
+    x,
+    y
+){
+
+    impacts.push({
+
+        x:x,
+
+        y:y,
+
+        radius:8,
+
+        life:420,
+
+        electric:true
+    });
+
+    for(
+        let i=0;
+        i<24;
+        i++
+    ){
+
+        const angle=
+            rnd(
+                0,
+                Math.PI*2
+            );
+
+        const speed=
+            rnd(
+                2,
+                8
+            );
+
+        particles.push({
+
+            x:x,
+
+            y:y,
+
+            vx:
+                Math.cos(angle)*
+                speed,
+
+            vy:
+                Math.sin(angle)*
+                speed,
+
+            life:rnd(
+                180,
+                500
+            ),
+
+            size:rnd(
+                2,
+                5
+            ),
+
+            electric:true
+        });
+    }
+}
+
+
+/* =========================================================
+   粒子
+========================================================= */
+
+function updateParticles(dt){
+
+    for(
+        let i=particles.length-1;
+        i>=0;
+        i--
+    ){
+
+        const p=
+            particles[i];
+
+        p.life-=
+            dt*1000;
+
+        p.x+=p.vx;
+
+        p.y+=p.vy;
+
+        p.vy+=.025;
+
+        if(
+            p.life<=0
+        ){
+
+            particles.splice(
+                i,
+                1
+            );
+        }
+    }
+}
+
+
+function drawParticles(){
+
+    for(
+        const p of particles
+    ){
+
+        ctx.globalAlpha=
+            clamp(
+                p.life/500,
+                0,
+                1
+            );
+
+        ctx.fillStyle=
+            p.electric
+                ?"white"
+                :"#bdf8ff";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            p.x,
+            p.y,
+            p.size,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fill();
+    }
+
+    ctx.globalAlpha=1;
+}
+
+
+/* =========================================================
+   Impact
+========================================================= */
+
+function updateImpacts(dt){
+
+    for(
+        let i=impacts.length-1;
+        i>=0;
+        i--
+    ){
+
+        const p=
+            impacts[i];
+
+        p.radius+=
+            dt*180;
+
+        p.life-=
+            dt*1000;
+
+        if(
+            p.life<=0
+        ){
+
+            impacts.splice(
+                i,
+                1
+            );
+        }
+    }
+}
+
+
+function drawImpacts(){
+
+    for(
+        const p of impacts
+    ){
+
+        ctx.save();
+
+        ctx.globalAlpha=
+            p.life/420;
+
+        ctx.strokeStyle=
+            "white";
+
+        ctx.lineWidth=4;
+
+        ctx.shadowBlur=25;
+
+        ctx.shadowColor=
+            "#6ceaff";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            p.x,
+            p.y,
+            p.radius,
+            0,
+            Math.PI*2
+        );
+
+        ctx.stroke();
+
+        ctx.restore();
+    }
+}
+
+
+/* =========================================================
+   天空
+========================================================= */
+
+function drawSky(){
+
+    const g=
+        ctx.createLinearGradient(
+            0,
+            0,
+            0,
+            H
+        );
+
+    g.addColorStop(
+        0,
+        "#07192f"
+    );
+
+    g.addColorStop(
+        .55,
+        "#4c91ab"
+    );
+
+    g.addColorStop(
+        1,
+        "#d5f3f3"
+    );
+
+    ctx.fillStyle=g;
+
+    ctx.fillRect(
+        0,
+        0,
+        W,
+        H
+    );
+}
+
+
+/* =========================================================
+   背景云
+========================================================= */
+
+function drawBackgroundClouds(){
+
+    for(
+        const c of backgroundClouds
+    ){
+
+        ctx.save();
+
+        ctx.globalAlpha=
+            c.opacity;
+
+        ctx.fillStyle=
+            "white";
+
+        const s=c.size;
+
+        ctx.beginPath();
+
+        ctx.ellipse(
+            c.x,
+            c.y+15,
+            s*1.5,
+            s*.4,
+            0,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fill();
+
+        ctx.beginPath();
+
+        ctx.arc(
+            c.x-s*.5,
+            c.y,
+            s*.45,
+            0,
+            Math.PI*2
+        );
+
+        ctx.arc(
+            c.x,
+            c.y-s*.2,
+            s*.58,
+            0,
+            Math.PI*2
+        );
+
+        ctx.arc(
+            c.x+s*.5,
+            c.y,
+            s*.45,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fill();
+
+        ctx.restore();
+    }
+}
+
+
+/* =========================================================
+   彩虹
+========================================================= */
+
+function drawRainbow(r){
+
+    ctx.save();
+
+    const alpha=
+        clamp(
+            r.life/r.maxLife,
+            0,
+            1
+        );
+
+    ctx.globalAlpha=alpha;
+
+    const colors=[
+        "#ff4d6d",
+        "#ff9f43",
+        "#ffe66d",
+        "#5de36b",
+        "#4ddcff",
+        "#6675ff",
+        "#d56cff"
+    ];
+
+    /*
+     * 大彩虹。
+     */
+    for(
+        let i=0;
+        i<colors.length;
+        i++
+    ){
+
+        ctx.strokeStyle=
+            colors[i];
+
+        ctx.lineWidth=10;
+
+        ctx.beginPath();
+
+        ctx.arc(
+            r.x,
+            r.y+r.size*.42,
+            r.size-i*11,
+            Math.PI,
+            Math.PI*2
+        );
+
+        ctx.stroke();
+    }
+
+    ctx.restore();
+}
+
+
+/* =========================================================
+   云
+========================================================= */
+
+function drawCloud(c){
+
+    ctx.save();
+
+    ctx.globalAlpha=
+        clamp(
+            c.opacity,
+            .08,
+            1
+        );
+
+    const s=
+        c.radius;
+
+    ctx.fillStyle=
+        (
+            debug.blackCloud&&
+            c.black
+        )
+            ?
+            "#20252d"
+            :
+            "#effcff";
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+        c.x,
+        c.y+15,
+        s*1.2,
+        s*.35,
+        0,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+    ctx.beginPath();
+
+    ctx.arc(
+        c.x-s*.5,
+        c.y,
+        s*.5,
+        0,
+        Math.PI*2
+    );
+
+    ctx.arc(
+        c.x,
+        c.y-s*.12,
+        s*.62,
+        0,
+        Math.PI*2
+    );
+
+    ctx.arc(
+        c.x+s*.5,
+        c.y,
+        s*.47,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+    /*
+     * 命中闪光。
+     */
+    if(
+        c.flash>0
+    ){
+
+        ctx.globalAlpha=
+            c.flash;
+
+        ctx.fillStyle=
+            "white";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            c.x,
+            c.y,
+            s*.9,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fill();
+    }
+
+    /*
+     * 黑云闪电。
+     */
+    if(
+        debug.blackCloud&&
+        c.black&&
+        c.lightningFlash>0
+    ){
+
+        ctx.globalAlpha=
+            c.lightningFlash;
+
+        ctx.strokeStyle=
+            "#dffcff";
+
+        ctx.lineWidth=2;
+
+        ctx.shadowBlur=18;
+
+        ctx.shadowColor=
+            "#8beaff";
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            c.x-12,
+            c.y-c.radius*.5
+        );
+
+        ctx.lineTo(
+            c.x+4,
+            c.y-c.radius*.1
+        );
+
+        ctx.lineTo(
+            c.x-5,
+            c.y+c.radius*.15
+        );
+
+        ctx.lineTo(
+            c.x+13,
+            c.y+c.radius*.55
+        );
+
+        ctx.stroke();
+    }
+
+    /*
+     * 当前可碰撞云高亮。
+     */
+    const target=
+        getCurrentTarget();
+
+    if(
+        debug.target&&
+        target&&
+        canCollideCloud(c)
+    ){
+
+        ctx.globalAlpha=
+            .65+
+            Math.sin(
+                performance.now()/130
+            )*.2;
+
+        ctx.strokeStyle=
+            "#6ceaff";
+
+        ctx.lineWidth=3;
+
+        ctx.beginPath();
+
+        ctx.ellipse(
+            c.x,
+            c.y,
+            s*1.25,
+            s*.72,
+            0,
+            0,
+            Math.PI*2
+        );
+
+        ctx.stroke();
+    }
+
+    /*
+     * 碰撞框。
+     */
+    if(
+        debug.collision
+    ){
+
+        ctx.globalAlpha=.9;
+
+        ctx.strokeStyle=
+            "#ff3333";
+
+        ctx.lineWidth=1;
+
+        ctx.beginPath();
+
+        ctx.arc(
+            c.x,
+            c.y,
+            c.radius,
+            0,
+            Math.PI*2
+        );
+
+        ctx.stroke();
+    }
+
+    /*
+     * 云等级 Debug。
+     */
+    if(
+        debug.cloudLevel
+    ){
+
+        ctx.globalAlpha=1;
+
+        ctx.textAlign="center";
+
+        ctx.font=
+            "bold 12px monospace";
+
+        ctx.fillStyle=
+            "#fff45c";
+
+        ctx.fillText(
+            "LV."+c.level+
+            " HP."+c.hp+
+            (
+                c.black
+                    ?" BLACK"
+                    :""
+            ),
+            c.x,
+            c.y-c.radius-12
+        );
+
+        ctx.textAlign="left";
+    }
+
+    /*
+     * UI Debug。
+     */
+    if(
+        debug.ui
+    ){
+
+        ctx.globalAlpha=1;
+
+        ctx.fillStyle=
+            "#7ff7ff";
+
+        ctx.font=
+            "11px monospace";
+
+        ctx.fillText(
+            "UI:"+c.ui,
+            c.x-25,
+            c.y+c.radius+15
+        );
+    }
+
+    ctx.restore();
+}
+
+
+/* =========================================================
+   独角兽
+========================================================= */
+
+function drawUnicorn(u){
+
+    if(
+        u.rescued
+    ){
+
+        return;
+    }
+
+    ctx.save();
+
+    ctx.translate(
+        u.x,
+        u.y
+    );
+
+    ctx.scale(
+        u.scale,
+        u.scale
+    );
+
+    ctx.globalAlpha=
+        u.opacity;
+
+    ctx.shadowBlur=16;
+
+    ctx.shadowColor=
+        "#f3aaff";
+
+    ctx.fillStyle=
+        "#f3ddff";
+
+    /*
+     * 身体。
+     */
+    ctx.beginPath();
+
+    ctx.ellipse(
+        0,
+        5,
+        30,
+        17,
+        0,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+    /*
+     * 头。
+     */
+    ctx.beginPath();
+
+    ctx.arc(
+        29,
+        -8,
+        14,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+    /*
+     * 独角。
+     */
+    ctx.fillStyle=
+        "#fff0a0";
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        31,
+        -18
+    );
+
+    ctx.lineTo(
+        39,
+        -38
+    );
+
+    ctx.lineTo(
+        26,
+        -20
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+    /*
+     * 腿。
+     */
+    ctx.strokeStyle=
+        "#f3ddff";
+
+    ctx.lineWidth=6;
+
+    for(
+        const x of [
+            -18,
+            -4,
+            10,
+            22
+        ]
+    ){
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            x,
+            15
+        );
+
+        ctx.lineTo(
+            x-3,
+            31
+        );
+
+        ctx.stroke();
+    }
+
+    /*
+     * 尾巴。
+     */
+    ctx.strokeStyle=
+        "#c99aff";
+
+    ctx.lineWidth=7;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        -28,
+        5
+    );
+
+    ctx.quadraticCurveTo(
+        -54,
+        0,
+        -43,
+        -20
+    );
+
+    ctx.stroke();
+
+    /*
+     * 眼睛。
+     */
+    ctx.shadowBlur=0;
+
+    ctx.fillStyle=
+        "#3d2150";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        34,
+        -9,
+        2.5,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+    ctx.restore();
+
+
+    const target=
+        getCurrentTarget();
+
+    /*
+     * 当前目标高亮。
+     */
+    if(
+        debug.target&&
+        target===u
+    ){
+
+        ctx.save();
+
+        ctx.globalAlpha=
+            .7+
+            Math.sin(
+                performance.now()/100
+            )*.25;
+
+        ctx.strokeStyle=
+            "white";
+
+        ctx.lineWidth=3;
+
+        ctx.shadowBlur=18;
+
+        ctx.shadowColor=
+            "white";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            u.x,
+            u.y,
+            u.radius+9,
+            0,
+            Math.PI*2
+        );
+
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    /*
+     * 保底高亮。
+     */
+    if(
+        debug.hint&&
+        assistFlash>0&&
+        target===u
+    ){
+
+        ctx.save();
+
+        ctx.globalAlpha=
+            assistFlash/2500;
+
+        ctx.strokeStyle=
+            "#ffe85c";
+
+        ctx.lineWidth=4;
+
+        ctx.shadowBlur=25;
+
+        ctx.shadowColor=
+            "#ffe85c";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            u.x,
+            u.y,
+            u.radius+14,
+            0,
+            Math.PI*2
+        );
+
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    /*
+     * 碰撞框。
+     */
+    if(
+        debug.collision&&
+        target===u
+    ){
+
+        ctx.save();
+
+        ctx.strokeStyle=
+            "#ff3333";
+
+        ctx.lineWidth=1;
+
+        ctx.beginPath();
+
+        ctx.arc(
+            u.x,
+            u.y,
+            u.radius,
+            0,
+            Math.PI*2
+        );
+
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    /*
+     * UI。
+     */
+    if(
+        debug.ui
+    ){
+
+        ctx.fillStyle=
+            "#ffff55";
+
+        ctx.font=
+            "11px monospace";
+
+        ctx.fillText(
+            "UI:"+u.ui,
+            u.x+18,
+            u.y-25
+        );
+    }
+}
+
+
+/* =========================================================
+   箭
+========================================================= */
+
+function drawArrows(){
+
+    for(
+        const a of arrows
+    ){
+
+        ctx.save();
+
+        /*
+         * 短轨迹。
+         */
+        for(
+            let i=1;
+            i<a.trail.length;
+            i++
+        ){
+
+            const p1=
+                a.trail[i-1];
+
+            const p2=
+                a.trail[i];
+
+            ctx.globalAlpha=
+                (
+                    i/
+                    a.trail.length
+                )*.55;
+
+            ctx.strokeStyle=
+                "#62eaff";
+
+            ctx.lineWidth=3;
+
+            ctx.beginPath();
+
+            ctx.moveTo(
+                p1.x,
+                p1.y
+            );
+
+            ctx.lineTo(
+                p2.x,
+                p2.y
+            );
+
+            ctx.stroke();
+        }
+
+        /*
+         * 短闪电箭体。
+         */
+        const len=38;
+
+        const v=
+            Math.hypot(
+                a.vx,
+                a.vy
+            )||1;
+
+        const bx=
+            a.x-
+            a.vx/v*
+            len;
+
+        const by=
+            a.y-
+            a.vy/v*
+            len;
+
+        ctx.globalAlpha=1;
+
+        ctx.strokeStyle=
+            "white";
+
+        ctx.lineWidth=4;
+
+        ctx.shadowBlur=20;
+
+        ctx.shadowColor=
+            "#55eaff";
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            bx,
+            by
+        );
+
+        ctx.lineTo(
+            a.x,
+            a.y
+        );
+
+        ctx.stroke();
+
+        ctx.restore();
+    }
+}
+
+
+/* =========================================================
+   雨
+========================================================= */
+
+function drawRain(){
+
+    if(
+        !weather.raining
+    ){
+
+        return;
+    }
+
+    ctx.save();
+
+    ctx.strokeStyle=
+        "#d5f8ff";
+
+    ctx.lineWidth=1;
+
+    for(
+        const r of rain
+    ){
+
+        ctx.globalAlpha=
+            r.opacity;
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            r.x,
+            r.y
+        );
+
+        ctx.lineTo(
+            r.x-3,
+            r.y+r.length
+        );
+
+        ctx.stroke();
+    }
+
+    ctx.restore();
+}
+
+
+/* =========================================================
+   弓
+========================================================= */
+
+function drawBow(){
+
+    const bx=
+        W*.09;
+
+    const by=
+        H*.82;
+
+    const p=
+        getAimPoint();
+
+    const angle=
+        Math.atan2(
+            p.y-by,
+            p.x-bx
+        );
+
+    ctx.save();
+
+    ctx.translate(
+        bx,
+        by
+    );
+
+    ctx.rotate(angle);
+
+    ctx.strokeStyle=
+        "#61eaff";
+
+    ctx.lineWidth=7;
+
+    ctx.shadowBlur=18;
+
+    ctx.shadowColor=
+        "#61eaff";
+
+    /*
+     * 弓。
+     */
+    ctx.beginPath();
+
+    ctx.moveTo(
+        -7,
+        -52
+    );
+
+    ctx.quadraticCurveTo(
+        18,
+        0,
+        -7,
+        52
+    );
+
+    ctx.stroke();
+
+    /*
+     * 弓弦。
+     *
+     * 向后拉。
+     */
+    const pull=
+        weapon.charging
+            ?
+            weapon.charge/
+            MAX_CHARGE*
+            40
+            :
+            0;
+
+    ctx.shadowBlur=0;
+
+    ctx.strokeStyle=
+        "#efffff";
+
+    ctx.lineWidth=2;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        -7,
+        -52
+    );
+
+    ctx.lineTo(
+        -pull,
+        0
+    );
+
+    ctx.lineTo(
+        -7,
+        52
+    );
+
+    ctx.stroke();
+
+    /*
+     * 雷核心。
+     */
+    ctx.fillStyle=
+        "white";
+
+    ctx.shadowBlur=22;
+
+    ctx.shadowColor=
+        "#63eaff";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        -pull,
+        0,
+        6,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+    ctx.restore();
+}
+
+
+/* =========================================================
+   准星
+========================================================= */
+
+function drawCrosshair(){
+
+    const p=
+        getAimPoint();
+
+    ctx.save();
+
+    ctx.translate(
+        p.x,
+        p.y
+    );
+
+    const r=
+        12+
+        weapon.shake*.25;
+
+    ctx.strokeStyle=
+        weapon.charging
+            ?
+            "#ffe95c"
+            :
+            "#ffffffcc";
+
+    ctx.lineWidth=2;
+
+    ctx.beginPath();
+
+    ctx.arc(
+        0,
+        0,
+        r,
+        0,
+        Math.PI*2
+    );
+
+    ctx.stroke();
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        -r-8,
+        0
+    );
+
+    ctx.lineTo(
+        -r+2,
+        0
+    );
+
+    ctx.moveTo(
+        r-2,
+        0
+    );
+
+    ctx.lineTo(
+        r+8,
+        0
+    );
+
+    ctx.moveTo(
+        0,
+        -r-8
+    );
+
+    ctx.lineTo(
+        0,
+        -r+2
+    );
+
+    ctx.moveTo(
+        0,
+        r-2
+    );
+
+    ctx.lineTo(
+        0,
+        r+8
+    );
+
+    ctx.stroke();
+
+    ctx.restore();
+}
+
+
+/* =========================================================
+   抛物线 Debug
+========================================================= */
+
+function drawTrajectoryDebug(){
+
+    /*
+     * 显示和功能独立。
+     */
+    if(
+        !debug.trajectoryDisplay
+    ){
+
+        return;
+    }
+
+    const startX=
+        W*.09;
+
+    const startY=
+        H*.82;
+
+    const p=
+        getAimPoint();
+
+    const dx=
+        p.x-startX;
+
+    const dy=
+        p.y-startY;
+
+    const angle=
+        Math.atan2(
+            dy,
+            dx
+        );
+
+    const chargeRatio=
+        clamp(
+            weapon.charge/
+            MAX_CHARGE,
+            0,
+            1
+        );
+
+    /*
+     * 必须与箭真实物理完全一致。
+     */
+    const gravity=
+        debug.trajectory
+            ?
+            520-
+            chargeRatio*360
+            :
+            0;
+
+    let x=startX;
+
+    let y=startY;
+
+    let vx=
+        Math.cos(angle)*
+        ARROW_SPEED;
+
+    let vy=
+        Math.sin(angle)*
+        ARROW_SPEED;
+
+    ctx.save();
+
+    ctx.strokeStyle=
+        "#fff45caa";
+
+    ctx.lineWidth=1.5;
+
+    ctx.setLineDash([
+        5,
+        5
+    ]);
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x,
+        y
+    );
+
+    for(
+        let i=0;
+        i<180;
+        i++
+    ){
+
+        const step=.016;
+
+        vy+=
+            gravity*
+            step;
+
+        x+=
+            vx*
+            step;
+
+        y+=
+            vy*
+            step;
+
+        ctx.lineTo(
+            x,
+            y
+        );
+
+        if(
+            x<0||
+            x>W||
+            y<0||
+            y>H
+        ){
+
+            break;
+        }
+    }
+
+    ctx.stroke();
+
+    ctx.setLineDash([]);
+
+    ctx.restore();
+}
+
+
+/* =========================================================
+   UI
+========================================================= */
+
+function updateUI(){
+
+    const energyBox=
+        document.getElementById(
+            "energyBox"
+        );
+
+    const energyText=
+        document.getElementById(
+            "energyText"
+        );
+
+    /*
+     * 能量。
+     */
+    if(
+        debug.energy
+    ){
+
+        energyBox.style.display="";
+
+        energyText.style.display="";
+
+        document
+        .getElementById(
+            "energy"
+        )
+        .style.width=
+            weapon.energy+
+            "%";
+
+        energyText.textContent=
+            "能量系统 ON · "+
+            Math.round(
+                weapon.energy
+            )+
+            "%";
+
+    }else{
+
+        energyBox.style.display=
+            "none";
+
+        energyText.style.display=
+            "none";
+    }
+
+    /*
+     * 冷却始终显示。
+     */
+    const cd=
+        document.getElementById(
+            "cooldown"
+        );
+
+    if(
+        weapon.cooldown>0
+    ){
+
+        cd.textContent=
+            "⚡ 冷却 "+
+            (
+                weapon.cooldown/
+                1000
+            ).toFixed(1)+
+            " 秒";
+
+        cd.style.color=
+            "#777";
+
+    }else if(
+        weapon.charging
+    ){
+
+        cd.textContent=
+            "⚡ 蓄力 "+
+            Math.round(
+                weapon.charge/
+                MAX_CHARGE*
+                100
+            )+
+            "%";
+
+        cd.style.color=
+            "white";
+
+    }else{
+
+        cd.textContent=
+            "⚡ READY";
+
+        cd.style.color="";
+    }
+
+    /*
+     * 当前目标。
+     */
+    const target=
+        getCurrentTarget();
+
+    if(target){
+
+        document
+        .getElementById(
+            "level"
+        )
+        .textContent=
+            "🦄 第"+
+            (target.id+1)+
+            "只 · UI "+
+            target.ui+
+            " · ⚡箭UI "+
+            getArrowUI();
+
+    }else{
+
+        document
+        .getElementById(
+            "level"
+        )
+        .textContent=
+            "🌈 全部完成";
+    }
+
+    document
+    .getElementById(
+        "score"
+    )
+    .textContent=
+        "得分："+score;
+
+    document
+    .getElementById(
+        "players"
+    )
+    .textContent=
+        "玩家1 · "+
+        rescued+
+        "/13";
+}
+
+
+/* =========================================================
+   鼠标 / 手机
+========================================================= */
+
+canvas.addEventListener(
+    "pointermove",
+    e=>{
+
+        /*
+         * 鼠标移动只负责瞄准。
+         */
+        aim.x=e.clientX;
+
+        aim.y=e.clientY;
+    }
+);
+
+
+canvas.addEventListener(
+    "pointerdown",
+    e=>{
+
+        if(
+            !started||
+            finished
+        ){
+
+            return;
+        }
+
+        /*
+         * 点击位置就是瞄准位置。
+         */
+        aim.x=e.clientX;
+
+        aim.y=e.clientY;
+
+        try{
+
+            canvas.setPointerCapture(
+                e.pointerId
+            );
+
+        }catch(_){}
+
+        /*
+         * 按下开始蓄力。
+         */
+        beginCharge();
+    }
+);
+
+
+canvas.addEventListener(
+    "pointerup",
+    e=>{
+
+        aim.x=e.clientX;
+
+        aim.y=e.clientY;
+
+        /*
+         * 松开发射。
+         */
+        endCharge();
+
+        try{
+
+            canvas.releasePointerCapture(
+                e.pointerId
+            );
+
+        }catch(_){}
+    }
+);
+
+
+canvas.addEventListener(
+    "pointercancel",
+    ()=>{
+
+        weapon.charging=false;
+
+        weapon.charge=0;
+
+        weapon.shake=0;
+    }
+);
+
+
+canvas.addEventListener(
+    "contextmenu",
+    e=>{
+        e.preventDefault();
+    }
+);
+
+
+/* =========================================================
+   键盘
+========================================================= */
+
+addEventListener(
+    "keydown",
+    e=>{
+
+        if(
+            e.code==="Space"&&
+            !e.repeat
+        ){
+
+            beginCharge();
+        }
+    }
+);
+
+
+addEventListener(
+    "keyup",
+    e=>{
+
+        if(
+            e.code==="Space"
+        ){
+
+            endCharge();
+        }
+    }
+);
+
+
+/* =========================================================
+   音效
+========================================================= */
+
+let audioContext=null;
+
+
+function playThunder(){
+
+    try{
+
+        const AC=
+            window.AudioContext||
+            window.webkitAudioContext;
+
+        if(!AC){
+
+            return;
+        }
+
+        if(!audioContext){
+
+            audioContext=
+                new AC();
+        }
+
+        if(
+            audioContext.state===
+            "suspended"
+        ){
+
+            audioContext.resume();
+        }
+
+        const osc=
+            audioContext.createOscillator();
+
+        const gain=
+            audioContext.createGain();
+
+        osc.type=
+            "sawtooth";
+
+        osc.frequency.setValueAtTime(
+            180,
+            audioContext.currentTime
+        );
+
+        osc.frequency.exponentialRampToValueAtTime(
+            38,
+            audioContext.currentTime+.3
+        );
+
+        gain.gain.setValueAtTime(
+            .0001,
+            audioContext.currentTime
+        );
+
+        gain.gain.exponentialRampToValueAtTime(
+            .18,
+            audioContext.currentTime+.01
+        );
+
+        gain.gain.exponentialRampToValueAtTime(
+            .0001,
+            audioContext.currentTime+.3
+        );
+
+        osc.connect(gain);
+
+        gain.connect(
+            audioContext.destination
+        );
+
+        osc.start();
+
+        osc.stop(
+            audioContext.currentTime+.3
+        );
+
+    }catch(_){}
+}
+
+
+/* =========================================================
+   开始
+========================================================= */
+
+document
+.getElementById(
+    "startButton"
+)
+.addEventListener(
+    "click",
+    ()=>{
+
+        started=true;
+
+        document
+        .getElementById(
+            "startScreen"
+        )
+        .style.display=
+            "none";
+
+        try{
+
+            if(
+                audioContext&&
+                audioContext.state===
+                "suspended"
+            ){
+
+                audioContext.resume();
+            }
+
+        }catch(_){}
+    }
+);
+
+
+/* =========================================================
+   Debug面板
+========================================================= */
+
+document
+.getElementById(
+    "debugButton"
+)
+.addEventListener(
+    "click",
+    ()=>{
+
+        document
+        .getElementById(
+            "debugPanel"
+        )
+        .classList.toggle(
+            "show"
+        );
+    }
+);
+
+
+function bindToggle(
+    id,
+    key
+){
+
+    const button=
+        document.getElementById(id);
+
+    button.addEventListener(
+        "click",
+        ()=>{
+
+            debug[key]=
+                !debug[key];
+
+            button.textContent=
+                debug[key]
+                    ?"ON"
+                    :"OFF";
+
+            button.className=
+                debug[key]
+                    ?"on"
+                    :"off";
+        }
+    );
+}
+
+
+bindToggle(
+    "energyDebug",
+    "energy"
+);
+
+bindToggle(
+    "shotEnergyDebug",
+    "shotEnergy"
+);
+
+bindToggle(
+    "blackCloudDebug",
+    "blackCloud"
+);
+
+bindToggle(
+    "targetDebug",
+    "target"
+);
+
+bindToggle(
+    "hintDebug",
+    "hint"
+);
+
+bindToggle(
+    "cloudLevelDebug",
+    "cloudLevel"
+);
+
+bindToggle(
+    "uiDebug",
+    "ui"
+);
+
+bindToggle(
+    "collisionDebug",
+    "collision"
+);
+
+bindToggle(
+    "trajectoryDebug",
+    "trajectory"
+);
+
+bindToggle(
+    "trajectoryDisplayDebug",
+    "trajectoryDisplay"
+);
+
+bindToggle(
+    "shakeDebug",
+    "shake"
+);
+
+
+/* =========================================================
+   完成
+========================================================= */
+
+function finishGame(){
+
+    finished=true;
+
+    document
+    .getElementById(
+        "finalScore"
+    )
+    .textContent=
+        "最终得分："+score;
+
+    document
+    .getElementById(
+        "finish"
+    )
+    .classList.add(
+        "show"
+    );
+}
+
+
+document
+.getElementById(
+    "restart"
+)
+.addEventListener(
+    "click",
+    ()=>{
+        location.reload();
+    }
+);
+
+
+/* =========================================================
+   初始化
+========================================================= */
+
+createClouds();
+
+createUnicorns();
+
+createBackgroundClouds();
+
+resize();
+
+
+/* =========================================================
+   主循环
+========================================================= */
+
+let last=
+    performance.now();
+
+
+function loop(now){
+
+    const dt=
+        Math.min(
+            .05,
+            (now-last)/
+            1000
+        );
+
+    last=now;
+
+    if(
+        started&&
+        !finished
+    ){
+
+        updateWeapon(dt);
+
+        updateArrows(dt);
+
+        updateClouds(dt);
+
+        updateUnicorns(dt);
+
+        updateBackgroundClouds(dt);
+
+        updateWeather(dt);
+
+        updateRainbows(dt);
+
+        updateParticles(dt);
+
+        updateImpacts(dt);
+
+        updateAssist(dt);
+    }
+
+    /*
+     * 天空。
+     */
+    drawSky();
+
+    /*
+     * 背景云。
+     */
+    drawBackgroundClouds();
+
+    /*
+     * 所有前景对象。
+     *
+     * UI越高视觉上越远。
+     */
+    const objects=[];
+
+    for(
+        const r of rainbows
+    ){
+
+        objects.push({
+
+            type:"rainbow",
+
+            obj:r,
+
+            ui:r.ui
+        });
+    }
+
+    for(
+        const c of clouds
+    ){
+
+        objects.push({
+
+            type:"cloud",
+
+            obj:c,
+
+            ui:c.ui
+        });
+    }
+
+    for(
+        const u of unicorns
+    ){
+
+        if(
+            !u.rescued
+        ){
+
+            objects.push({
+
+                type:"unicorn",
+
+                obj:u,
+
+                ui:u.ui
+            });
+        }
+    }
+
+    /*
+     * 高UI先绘制，
+     * 低UI后绘制。
+     *
+     * 后绘制的对象会遮挡前面的对象，
+     * 因此形成景深。
+     */
+    objects.sort(
+        (a,b)=>
+            a.ui-b.ui
+    );
+
+    for(
+        const o of objects
+    ){
+
+        if(
+            o.type==="rainbow"
+        ){
+
+            drawRainbow(o.obj);
+
+        }else if(
+            o.type==="cloud"
+        ){
+
+            drawCloud(o.obj);
+
+        }else{
+
+            drawUnicorn(o.obj);
+        }
+    }
+
+    /*
+     * 箭。
+     */
+    drawArrows();
+
+    /*
+     * 雨。
+     */
+    drawRain();
+
+    /*
+     * 粒子。
+     */
+    drawParticles();
+
+    /*
+     * 命中特效。
+     */
+    drawImpacts();
+
+    /*
+     * 弓。
+     */
+    drawBow();
+
+    /*
+     * 准星。
+     */
+    drawCrosshair();
+
+    /*
+     * Debug预测轨迹。
+     */
+    drawTrajectoryDebug();
+
+    /*
+     * UI。
+     */
+    updateUI();
+
+    requestAnimationFrame(loop);
+}
+
+
+requestAnimationFrame(loop);
+
+</script>
+
+</body>
+</html>
