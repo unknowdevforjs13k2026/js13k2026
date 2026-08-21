@@ -6,6 +6,12 @@
 
 # 		**⚡雷霆独角兽 ⚡**
 
+已提交在[js13kgames](https://play.js13kgames.com/thunder-unicorn-13/#play)
+
+[点击开始游玩]: https://play.js13kgames.com/thunder-unicorn-13/#play
+
+https://play.js13kgames.com/thunder-unicorn-13/#play
+
 # ***To player :***
 
 # 1· **lang=zh**
