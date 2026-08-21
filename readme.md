@@ -18,7 +18,7 @@
 
 ## **你可以在游戏开始界面右键鼠标选择翻译**(lang=en)
 
-### js13k网站翻译失败可以下载到本地运行后edge浏览器右键翻译
+### js13k网站翻译失败需要使用鼠标中键在新标签页打开游戏链接[js13kgames](https://play.js13kgames.com/thunder-unicorn-13/#play)
 
 ## 2· **debug选项**
 
