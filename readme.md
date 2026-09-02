@@ -1,4 +1,5 @@
-
+致审核，源码在本仓库如下链接
+https://github.com/unknowdevforjs13k2026/js13k2026/blob/main/source%20code.html
 
 --------------------------------------------------------------
 
