@@ -1,3 +1,5 @@
+‼️⚠️紧急通知：我的作品似乎被js13k删除了，因此以下相关链接已经失效404，需要下载本地运行！
+
 source code :
 https://github.com/unknowdevforjs13k2026/js13k2026/blob/main/source%20code.html
 
