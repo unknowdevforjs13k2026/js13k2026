@@ -3,8 +3,7 @@
 目前已经重新上传，另起仓库
 
 source code :
-https://github.com/unknowdevforjs13k2026/js13k2026/blob/main/source%20code.html
-
+https://github.com/unknowdevforjs13k2026/js13k-2026
 --------------------------------------------------------------
 
 
